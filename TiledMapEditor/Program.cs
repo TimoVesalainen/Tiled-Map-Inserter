@@ -31,31 +31,26 @@ namespace TiledMapInserter
         public static void Run(string mapPath, string ROMpath, int offset, int? mapPointerOffset, 
             bool insertMapChange, int? mapChangePointerOffset)
         {
-            XmlDocument doc = new XmlDocument();
-            doc.Load(mapPath);
-
-            Map map = new Map(doc);
-
-            if (map.TileWidth != 16 || map.TileHeight != 16)
+            using (var mapStream = File.OpenRead(mapPath))
             {
-                throw new Exception("Tilesize is not 16x16");
+                var map = Map.FromStream(mapStream, null);
+
+                if (map.CellWidth != 16 || map.CellHeight != 16)
+                {
+                    throw new Exception("Tilesize is not 16x16");
+                }
+
+                var tileChanges = new Dictionary<int, Tuple<Rectangle, TileLayer>>(map.Layers.Length);
+
+                int mainLayerIndex = HandleLayers(map, tileChanges);
+
+                ChangeStream stream = new ChangeStream();
+
+                InsertMap(offset, mapPointerOffset, insertMapChange, mapChangePointerOffset,
+                    map, tileChanges, mainLayerIndex, stream);
+
+                stream.WriteToFile(ROMpath);
             }
-
-            var tileChanges = new Dictionary<int, Tuple<Rectangle, TileLayer>>(map.Layers.Count);
-
-            int mainLayerIndex = HandleLayers(map, tileChanges);
-
-            
-            //byte[] ROMData = File.ReadAllBytes(ROMpath);
-
-            //MemoryStream stream = new MemoryStream(ROMData);
-            ChangeStream stream = new ChangeStream();
-
-            InsertMap(offset, mapPointerOffset, insertMapChange, mapChangePointerOffset, 
-                map, tileChanges, mainLayerIndex, stream);
-
-            stream.WriteToFile(ROMpath);
-            //File.WriteAllBytes(ROMpath, ROMData);
         }
 
         private static void InsertMap(int offset, int? mapPointerOffset, bool insertMapChange, int? mapChangePointerOffset, 
@@ -160,16 +155,16 @@ namespace TiledMapInserter
         private static int HandleLayers(Map map, Dictionary<int, Tuple<Rectangle, TileLayer>> tileChanges)
         {
             int mainLayerIndex = -1;
-            if (map.Layers.Count > 1)
+            if (map.Layers.Length > 1)
             {
-                for (int i = 0; i < map.Layers.Count; i++)
+                for (int i = 0; i < map.Layers.Length; i++)
                 {
                     Rectangle tileChangeArea = new Rectangle();
                     int ID = -1;
 
                     foreach (var item in map.Layers[i].Properties)
                     {
-                        if (item.Name.Equals("Main", StringComparison.OrdinalIgnoreCase))
+                        if (item.Key.Equals("Main", StringComparison.OrdinalIgnoreCase))
                         {
                             if (mainLayerIndex >= 0)
                             {
@@ -180,7 +175,7 @@ namespace TiledMapInserter
                         else
                         {
                             //Tile change
-                            switch (item.Name)
+                            switch (item.Key)
                             {
                                 case "Width":
                                     tileChangeArea.Width = int.Parse(item.Value);
