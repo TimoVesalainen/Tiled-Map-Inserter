@@ -1,5 +1,9 @@
 # Nintenlord's Tiled map inserter
 
+## Note
+
+Haven't actually tested this with any of the latest versions of Tiled.
+
 ## How to use 
 
 *Choose the Tiled map you wish to insert as the Tiled file 
