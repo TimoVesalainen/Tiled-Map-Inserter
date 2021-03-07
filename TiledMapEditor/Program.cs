@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
-using System.Xml;
-using TiledPipelineExtensions;
 using System.IO;
 using System.Drawing;
 using Nintenlord.Utility;
+using Nintenlord.Utility.Primitives;
 using Nintenlord.IO;
 using Nintenlord.Hacking.GBA;
 using TiledLib.Layer;
@@ -102,7 +100,7 @@ namespace TiledMapInserter
             foreach (var item in tileChanges)//Insert tiles
             {
                 offsets[item.Key] = ((int)writer.BaseStream.Position);
-                ushort[] tiles = item.Value.Curry(GetArea);
+                ushort[] tiles = item.Value.Apply(GetArea);
                 foreach (var tile in tiles)
                 {
                     writer.Write(tile);
